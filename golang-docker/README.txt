@@ -14,3 +14,6 @@ docker run -d -p 8080:8081 golang-docker
 docker ps
 curl http://localhost:8080/hi
 curl http://localhost:8080/
+
+
+docker build -t dsatya6/golang-docker:0.1.0 .
