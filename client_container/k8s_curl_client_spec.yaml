@@ -1,0 +1,34 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sample-traffic
+  labels:
+    name: sample-traffic
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: curl-frontend-pod
+  namespace: sample-traffic
+  labels:
+    app: curl
+spec:
+  containers:
+    - name: curl-frontend-container
+      image: dsatya6/client_container:0.1.0
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: curl-frontend-service
+  namespace: sample-traffic
+spec:
+  type: NodePort
+  selector:
+    app: curl
+  ports:
+    # port - port exposed internally in the cluster
+    # targetPort - the container port to send requests to
+    - port: 3000
+      targetPort: 3000

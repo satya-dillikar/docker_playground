@@ -10,7 +10,7 @@ parameters:
     default: "dsatya6"
   IMAGE_NAME:
     type: string
-    default: "http_json_rest"
+    default: "golang-server"
   DOCKER_USERNAME:
     type: string
     default: "dsatya6"
@@ -34,65 +34,36 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.15.8
-    working_directory: ~/modern-apps
+    working_directory: ~/myapp
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - go-mod-v4-{{ checksum "distributed_apps/http_json_rest/go.mod" }}
-      - run:
-          name: Install Dependencies
-          # command: go get ./...
-          command: |
-            cd distributed_apps/http_json_rest
-            go mod download
-      - run:
-          name: "Building Client"
-          command: |
-            cd distributed_apps/http_json_rest
-            CGO_ENABLED=0 go build -a -o bin/client_main ./client/client_main.go
       - run:
           name: "Building Server"
           command: |
-            cd distributed_apps/http_json_rest
-            CGO_ENABLED=0 go build -a -o bin/server_main ./server/server_main.go
-      - save_cache:
-          key: go-mod-v4-{{ checksum "distributed_apps/http_json_rest/go.mod" }}
-          paths:
-            - "/go/pkg/mod"
-      - run:
-          name: Run tests
-          command: |
-            cd distributed_apps/http_json_rest
-            go test -v -race ./...
+            CGO_ENABLED=0 go build -a -o bin/server_main ./server/main.go
   lint:
     docker:
       - image: golangci/golangci-lint:v1.37-alpine
-    working_directory: ~/modern-apps
+    working_directory: ~/myapp
     steps:
       - checkout
       - run:
           name: "Linting files"
           command: |
-            cd distributed_apps/http_json_rest
             golangci-lint run
   test:
     docker:
-      # We use golang:1.16 instead of golang:1.16-alpine because we want to run
-      # tests with the race detector enabled. The race detector requires glibc,
-      # which is only present in the Debian-based containers.
       - image: circleci/golang:1.16
-    working_directory: ~/modern-apps
+    working_directory: ~/myapp
     steps:
       - checkout
       - run:
           name: Run tests
           command: |
-            cd distributed_apps/http_json_rest
             go test -v -race ./...
 
   docker-build:
-    working_directory: ~/modern-apps
+    working_directory: ~/myapp
     environment:
       CGO_ENABLED: "0"
       <<: *common_envars
@@ -101,11 +72,6 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - restore_cache:
-          keys:
-            - v1-{{ .Branch }}
-          paths:
-            - "./caches/app.tar"
       - run:
           name: "Dump Config Params"
           command: |
@@ -122,40 +88,27 @@ jobs:
           command: |
             docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
       - run:
-          name: Load Docker image layer cache
-          command: |
-            set +o pipefail
-            docker load -i /caches/app.tar | true
-      - run:
           name: "Docker build container"
           command: |
-            cd distributed_apps/http_json_rest
             docker build -t ${DOCKER_REPOSITORY}/${IMAGE_NAME}:${VERSION} .
-      - run:
-          name: Save Docker image layer cache
-          command: |
-            mkdir -p /caches
-            #docker save -o /caches/app.tar app
-      - save_cache:
-          key: v1-{{ .Branch }}-{{ epoch }}
-          paths:
-            - "./caches/app.tar"
       - run:
           name: Docker Test Container
           command: |
-            cd distributed_apps/http_json_rest  &&
             docker rm -f ${IMAGE_NAME}  2>/dev/null || true  &&
-            docker run -dp 9001:9001 --name=${IMAGE_NAME} ${DOCKER_REPOSITORY}/${IMAGE_NAME}:${VERSION}  2>/dev/null ||true  &&
-            #docker ps  &&
+            docker run -dp 8080:8081 --name=${IMAGE_NAME} ${DOCKER_REPOSITORY}/${IMAGE_NAME}:${VERSION}  2>/dev/null ||true  &&
             sleep 5 &&
-            #curl http://www.example.com/ &&
-            curl -s --retry 10 --retry-delay 5 http://0.0.0.0:9001 | grep Me  &&
+            curl -s --retry 10 --retry-delay 5 http://0.0.0.0:8080  &&
+            echo "" &&
+            curl -s --retry 10 --retry-delay 5 http://0.0.0.0:8080/hi  &&
+            echo "" &&
+            curl -s --retry 10 --retry-delay 5 http://0.0.0.0:8080/test  &&
+            echo "" &&
+            sleep 5 &&
             docker stop ${IMAGE_NAME}  2>/dev/null  || true  &&
             docker rm ${IMAGE_NAME}  2>/dev/null || true
       - run:
           name: Docker Push Container
           command: |
-            cd distributed_apps/http_json_rest
             docker push ${DOCKER_REPOSITORY}/${IMAGE_NAME}:${VERSION}
 workflows:
   build_lint_test:

@@ -7,12 +7,13 @@ VERSION:=0.1.0
 .PHONY: build clean test build-container push-container test-container
 
 build :
-	python3 src/server.py
+	python3 server/main.py
+
 clean :
 	@echo ""
 
 test:
-	python3 src/server.py
+	python3 server/main.py
 
 
 build-container :
@@ -26,6 +27,12 @@ test-container :
 	# python server is running a 5000, map to docker 5000
 	@docker run -dp 5000:5000 --name=$(NAME) $(DOCKER_IMAGE_NAME):$(VERSION)
 	@docker ps
+	@sleep 5
 	@curl http://localhost:5000/
 	@echo ""
+	@sleep 2
 	@curl http://localhost:5000/hi
+	@echo ""
+	@sleep 2
+	@docker stop $(NAME) || true
+	@docker rm -f $(NAME) || true

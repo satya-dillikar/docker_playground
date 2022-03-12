@@ -4,26 +4,10 @@ FROM golang:1.16-alpine as builder
 
 
 ENV GO111MODULE=off
-
-## We create an /app directory within our
-## image that will hold our application source
-## files
-RUN mkdir /app
-
-## We copy everything in the root directory
-## into our /app directory
-ADD . /app
-
-## We specify that we now wish to execute 
-## any further commands inside our /app
-## directory
 WORKDIR /app
+COPY . /app
 
+RUN go build -o main ./server/
 
-## we run go build to compile the binary
-## executable of our Go program
-RUN go build -o main ./src
-
-## Our start command which kicks off
-## our newly created binary executable
+EXPOSE 8081
 CMD ["/app/main"]
