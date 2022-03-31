@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: "ultimateboaraks-14a9"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: "ultimateboaraks-14a9"
+  template:
+    metadata:
+      labels:
+        app: "ultimateboaraks-14a9"
+    spec:
+      containers:
+        - name: "ultimateboaraks-14a9"
+          image: "azwest2repo.azurecr.io/ultimateboaraks"
+          ports:
+          - containerPort: 80
